@@ -1,0 +1,12 @@
+
+version: 2
+
+models:
+  - name: payment_details
+    description: "A payment_details dbt model"
+    columns:
+      - name: username
+        description: "The primary key for this table"
+        tests:
+          - unique
+          - not_null

@@ -1,0 +1,19 @@
+# Just for run the docker file locally!!
+# docker compose build --no-cache && docker compose up
+version: '3'
+services:
+  # service name
+  dbt:
+    # platform: linux/x86_64
+    container_name: dbt
+    mem_limit: 100m
+    cpuset: "0"
+    command: bash -c "tail -F anything" # warning: this keeps alive the container
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - net-test
+    restart: "no" # no, always, on-failure=reboot just if fails<>exited 0, unless-stopped=it will keep the server up until I explicit stopped
+networks:
+  net-test:

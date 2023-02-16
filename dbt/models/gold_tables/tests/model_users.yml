@@ -1,0 +1,12 @@
+
+version: 2
+
+models:
+  - name: model_users
+    description: "A model_users dbt model"
+    columns:
+      - name: username
+        description: "The primary key for this table"
+        tests:
+          - unique
+          - not_null

@@ -1,0 +1,59 @@
+name: Build and Push Python Image to Google Cloud Platform
+on:
+  push:
+    branches: [ main ]
+jobs:
+  build-push-gcr:
+    name: Build and Push to GCP
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: project-demo
+      PROJECT_ID: refined-network-373614
+      ARTIFACT_REGION: us-docker.pkg.dev
+      DESTINATION_FOLDER: "project-demo"
+      DBT_CONFIG_FILE: "profiles.yml"
+      DESTINATION_BUCKET_CONFIG_FILE: "destination_bucket.txt"
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        credentials_json: '${{ secrets.SERVICE_ACCOUNT_KEY }}'
+
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v1'
+      with:
+        project_id: ${{ env.PROJECT_ID }}
+
+    - name: 'Copy profiles.yml on workspace'
+      run: 'gcloud storage cp gs://bq-test-mfp/airflow_config/${{ env.DBT_CONFIG_FILE }} .'
+
+    - name: 'Copy destination bucket on workspace'
+      run: 'gcloud storage cp gs://bq-test-mfp/airflow_config/${{ env.DESTINATION_BUCKET_CONFIG_FILE }} .'
+
+    - name: Build Docker Image
+      run: docker build -t ${{ env.IMAGE_NAME }}:latest .
+
+    - name: 'Upload dag file to Cloud Storage (Composer)'
+      run: 'gsutil -m rsync -r -d dags gs://$(cat destination_bucket.txt)/dags/${{ env.DESTINATION_FOLDER }}'
+
+    - name: Automatic Tagging of Releases
+      id: increment-git-tag
+      run: |
+        bash ./scripts/git_update.sh -v minor
+
+    - name: Configure Docker Client
+      run: |-
+        gcloud auth configure-docker us-docker.pkg.dev --quiet
+
+    - name: Push Docker Image to Artifact Registry
+      env:
+        GIT_TAG: ${{ steps.increment-git-tag.outputs.git-tag }}
+      run: |-
+        docker tag ${{ env.IMAGE_NAME }}:latest us-docker.pkg.dev/${{ env.PROJECT_ID }}/demo/${{ env.IMAGE_NAME }}:latest
+        docker tag ${{ env.IMAGE_NAME }}:latest us-docker.pkg.dev/${{ env.PROJECT_ID }}/demo/${{ env.IMAGE_NAME }}:${{ env.GIT_TAG }}
+        docker push us-docker.pkg.dev/${{ env.PROJECT_ID }}/demo/${{ env.IMAGE_NAME }}:latest
+        docker push us-docker.pkg.dev/${{ env.PROJECT_ID }}/demo/${{ env.IMAGE_NAME }}:${{ env.GIT_TAG }}

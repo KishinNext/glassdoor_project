@@ -1,0 +1,7 @@
+# add dependencies. these will get pulled during the `dbt deps` process.
+
+packages:
+  - package: dbt-labs/dbt_utils
+    version: 1.0.0
+  - package: calogica/dbt_date
+    version: 0.7.2

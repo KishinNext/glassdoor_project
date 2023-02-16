@@ -1,0 +1,12 @@
+
+version: 2
+
+models:
+  - name: clean_users
+    description: "A clean_users dbt model"
+    columns:
+      - name: username
+        description: "The primary key for this table"
+        tests:
+          - unique
+          - not_null
